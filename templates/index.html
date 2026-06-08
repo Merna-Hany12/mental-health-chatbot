@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindBridge — Mental Health Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── Design tokens ─────────────────────────────────────────────── */
+:root {
+  --bg:          #0f1117;
+  --surface:     #171b26;
+  --surface2:    #1e2333;
+  --border:      #2a3046;
+  --border-glow: rgba(130,180,255,0.15);
+  --text:        #e8ecf4;
+  --text-muted:  #7a86a0;
+  --accent:      #6ea8fe;
+  --accent2:     #a78bfa;
+  --accent3:     #34d399;
+  --user-bg:     linear-gradient(135deg, #1a3a6e 0%, #1e2b4d 100%);
+  --bot-bg:      #1e2333;
+  --radius:      16px;
+  --radius-sm:   8px;
+  --shadow:      0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+}
+
+/* ── Background mesh ────────────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 600px 400px at 20% 10%, rgba(110,168,254,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 80% 80%, rgba(167,139,250,0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+#sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  transition: transform .3s ease;
+}
+
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────── */
+.sidebar-header {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -.3px;
+  color: var(--text);
+}
+
+.logo-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 46px;
+  letter-spacing: .3px;
+}
+
+.sidebar-section {
+  padding: 20px 24px 0;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* Pipeline status cards */
+.module-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color .2s;
+}
+
+.module-card:hover { border-color: var(--border-glow); }
+
+.module-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+  transition: background .3s;
+}
+.module-dot.active  { background: var(--accent3); box-shadow: 0 0 6px var(--accent3); }
+.module-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0%,100%{ opacity:.4; }
+  50%    { opacity:1;   }
+}
+
+.module-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.1;
+}
+.module-tech {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Analysis panel */
+#analysis-panel {
+  margin: 20px 24px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+#analysis-panel.visible { display: flex; }
+
+.analysis-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+.analysis-key {
+  color: var(--text-muted);
+  min-width: 62px;
+  font-weight: 500;
+  padding-top: 1px;
+}
+.analysis-val {
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 500;
+  background: rgba(110,168,254,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(110,168,254,0.2);
+}
+.tag.emotion { background: rgba(167,139,250,0.15); color: var(--accent2); border-color: rgba(167,139,250,0.2); }
+.tag.lang    { background: rgba(52,211,153,0.12);  color: var(--accent3); border-color: rgba(52,211,153,0.2); }
+.tag.route   { background: rgba(251,191,36,0.12);  color: #fbbf24; border-color: rgba(251,191,36,0.2); }
+
+.conf-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  flex: 1;
+  min-width: 60px;
+  overflow: hidden;
+}
+.conf-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  transition: width .6s ease;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ── Chat header ────────────────────────────────────────────────── */
+#chat-header {
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+}
+
+.avatar {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.header-info { flex: 1; }
+.header-name {
+  font-family: 'Fraunces', serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text);
+}
+.header-status {
+  font-size: 11px;
+  color: var(--accent3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 1px;
+}
+.status-dot {
+  width: 6px; height: 6px;
+  background: var(--accent3);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: all .2s;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Messages ───────────────────────────────────────────────────── */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+
+#messages::-webkit-scrollbar { width: 4px; }
+#messages::-webkit-scrollbar-track { background: transparent; }
+#messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.msg {
+  display: flex;
+  gap: 12px;
+  max-width: 780px;
+  animation: msgIn .3s ease forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+@keyframes msgIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg.user { flex-direction: row-reverse; margin-left: auto; }
+
+.msg-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.msg.bot .msg-avatar  { background: linear-gradient(135deg, #1a3060, #2a1f50); }
+.msg.user .msg-avatar { background: linear-gradient(135deg, #1a4d2e, #1f3d45); }
+
+.msg-body { flex: 1; min-width: 0; }
+
+.msg-bubble {
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.65;
+  position: relative;
+}
+
+.msg.bot  .msg-bubble {
+  background: var(--bot-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px var(--radius) var(--radius) var(--radius);
+  color: var(--text);
+}
+.msg.user .msg-bubble {
+  background: var(--user-bg);
+  border: 1px solid rgba(110,168,254,0.2);
+  border-radius: var(--radius) 4px var(--radius) var(--radius);
+  color: var(--text);
+}
+
+.msg-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.msg.user .msg-meta { justify-content: flex-end; }
+
+/* Sources accordion */
+.sources-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--accent);
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border: 1px solid rgba(110,168,254,0.2);
+  border-radius: 20px;
+  background: rgba(110,168,254,0.07);
+  transition: all .2s;
+  user-select: none;
+}
+.sources-toggle:hover { background: rgba(110,168,254,0.14); }
+
+.sources-list {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sources-list.open { display: flex; }
+
+.source-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Typing indicator */
+.typing-bubble {
+  padding: 14px 18px;
+  background: var(--bot-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px var(--radius) var(--radius) var(--radius);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  width: fit-content;
+}
+.typing-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typingBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2){ animation-delay:.15s; }
+.typing-dot:nth-child(3){ animation-delay:.3s; }
+
+@keyframes typingBounce {
+  0%,60%,100%{ transform: translateY(0); opacity:.4; }
+  30%        { transform: translateY(-6px); opacity:1; }
+}
+
+/* Welcome screen */
+#welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  flex: 1;
+  padding: 40px;
+  gap: 20px;
+}
+
+.welcome-icon {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, rgba(110,168,254,0.15), rgba(167,139,250,0.15));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+}
+
+.welcome-title {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -.3px;
+}
+
+.welcome-sub {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.prompt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.prompt-chip {
+  padding: 8px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .2s;
+}
+.prompt-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(110,168,254,0.07);
+}
+
+/* ── Input bar ───────────────────────────────────────────────────── */
+#input-bar {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.input-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  transition: border-color .2s;
+}
+.input-wrap:focus-within { border-color: rgba(110,168,254,0.4); }
+
+#msg-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  max-height: 120px;
+  min-height: 24px;
+  overflow-y: auto;
+}
+#msg-input::placeholder { color: var(--text-muted); }
+#msg-input::-webkit-scrollbar { width: 3px; }
+#msg-input::-webkit-scrollbar-thumb { background: var(--border); }
+
+#send-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: opacity .2s, transform .15s;
+}
+#send-btn:hover:not(:disabled) { opacity: .85; transform: scale(1.05); }
+#send-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.input-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 8px;
+  letter-spacing: .2px;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar { display: none; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ── Sidebar ────────────────────────────────────────────────────── -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <span class="logo-text">MindBridge</span>
+    </div>
+    <div class="logo-sub">Mental Health Support</div>
+  </div>
+
+  <!-- Pipeline modules -->
+  <div class="sidebar-section">
+    <div class="sidebar-label">AI Pipeline</div>
+
+    <div class="module-card" id="mod-1">
+      <div class="module-dot loading" id="dot-1"></div>
+      <div>
+        <div class="module-name">Language Detector</div>
+        <div class="module-tech">TF-IDF · Linear SVC</div>
+      </div>
+    </div>
+
+    <div class="module-card" id="mod-2">
+      <div class="module-dot loading" id="dot-2"></div>
+      <div>
+        <div class="module-name">Emotion Classifier</div>
+        <div class="module-tech">DistilBERT · Transformers</div>
+      </div>
+    </div>
+
+    <div class="module-card" id="mod-3">
+      <div class="module-dot loading" id="dot-3"></div>
+      <div>
+        <div class="module-name">Intent Classifier</div>
+        <div class="module-tech">Few-shot · Groq LLM</div>
+      </div>
+    </div>
+
+    <div class="module-card" id="mod-4">
+      <div class="module-dot loading" id="dot-4"></div>
+      <div>
+        <div class="module-name">RAG Pipeline</div>
+        <div class="module-tech">Qdrant · SentenceTransformer</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Last-turn analysis -->
+  <div class="sidebar-section" style="margin-top:20px;">
+    <div class="sidebar-label">Last Turn Analysis</div>
+    <div id="analysis-panel">
+      <div class="analysis-row">
+        <span class="analysis-key">Language</span>
+        <span class="analysis-val" id="a-lang">—</span>
+      </div>
+      <div class="analysis-row">
+        <span class="analysis-key">Intent</span>
+        <span class="analysis-val" id="a-intent">—</span>
+      </div>
+      <div class="analysis-row">
+        <span class="analysis-key">Emotion</span>
+        <span class="analysis-val" id="a-emotion">—</span>
+      </div>
+      <div class="analysis-row">
+        <span class="analysis-key">Confidence</span>
+        <span class="analysis-val" id="a-conf" style="flex-direction:column;gap:4px;width:100%;">—</span>
+      </div>
+      <div class="analysis-row">
+        <span class="analysis-key">Route</span>
+        <span class="analysis-val" id="a-route">—</span>
+      </div>
+      <div class="analysis-row">
+        <span class="analysis-key">Latency</span>
+        <span class="analysis-val" id="a-lat" style="color:var(--accent3);">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    Responses are for informational support only and are not a substitute for professional medical advice.
+  </div>
+</aside>
+
+<!-- ── Main chat area ─────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- Header -->
+  <header id="chat-header">
+    <div class="avatar">🤍</div>
+    <div class="header-info">
+      <div class="header-name">MindBridge Assistant</div>
+      <div class="header-status">
+        <div class="status-dot"></div>
+        Initializing modules…
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" title="Clear chat" onclick="clearChat()">🗑</button>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  <div id="messages">
+    <!-- Welcome screen (shown when no messages) -->
+    <div id="welcome">
+      <div class="welcome-icon">💬</div>
+      <h2 class="welcome-title">Hello, I'm here for you.</h2>
+      <p class="welcome-sub">
+        Share what's on your mind — whether you're feeling anxious, overwhelmed,
+        or just need someone to talk to. I'll listen and offer support.
+      </p>
+      <div class="prompt-chips">
+        <div class="prompt-chip" onclick="sendChip(this)">I've been feeling very anxious lately</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I feel hopeless and empty inside</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I can't stop worrying about everything</div>
+        <div class="prompt-chip" onclick="sendChip(this)">How do I cope with depression?</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I'm having trouble sleeping</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input bar -->
+  <div id="input-bar">
+    <div class="input-wrap">
+      <textarea
+        id="msg-input"
+        rows="1"
+        placeholder="Share what's on your mind…"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">➤</button>
+    </div>
+    <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+  </div>
+
+</main>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────
+let isLoading = false;
+
+// ── On load: health check ─────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  checkHealth();
+});
+
+async function checkHealth() {
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    const mods = data.modules || {};
+
+    // Update module dots
+    updateDot('dot-1', mods.language_detector);
+    updateDot('dot-2', mods.emotion_classifier);
+    updateDot('dot-3', mods.intent_classifier);
+    updateDot('dot-4', mods.rag_pipeline);
+
+    // Update header status
+    const statusEl = document.querySelector('.header-status');
+    if (data.status === 'ok' || data.status === 'degraded') {
+      statusEl.innerHTML = `<div class="status-dot"></div> Ready · All modules online`;
+      statusEl.style.color = 'var(--accent3)';
+    }
+  } catch (e) {
+    document.querySelector('.header-status').innerHTML = `<div class="status-dot" style="background:#f87171"></div> API offline`;
+  }
+}
+
+function updateDot(dotId, isActive) {
+  const dot = document.getElementById(dotId);
+  if (!dot) return;
+  dot.classList.remove('loading');
+  if (isActive) dot.classList.add('active');
+  else dot.style.background = '#f87171';
+}
+
+// ── Message rendering ─────────────────────────────────────────────
+function appendMessage(role, text, meta = null) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('messages');
+  const msgEl = document.createElement('div');
+  msgEl.className = `msg ${role}`;
+
+  const avatarEl = document.createElement('div');
+  avatarEl.className = 'msg-avatar';
+  avatarEl.textContent = role === 'bot' ? '🤍' : '💭';
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'msg-body';
+
+  const bubbleEl = document.createElement('div');
+  bubbleEl.className = 'msg-bubble';
+  bubbleEl.innerHTML = formatText(text);
+
+  // Sources
+  if (meta && meta.sources && meta.sources.length > 0) {
+    const toggle = document.createElement('div');
+    toggle.className = 'sources-toggle';
+    toggle.innerHTML = `📚 ${meta.sources.length} sources`;
+    toggle.onclick = () => {
+      list.classList.toggle('open');
+      toggle.innerHTML = list.classList.contains('open')
+        ? `📚 Hide sources`
+        : `📚 ${meta.sources.length} sources`;
+    };
+
+    const list = document.createElement('div');
+    list.className = 'sources-list';
+    meta.sources.forEach((s, i) => {
+      const item = document.createElement('div');
+      item.className = 'source-item';
+      const sourceText = s.text || s.snippet || '';
+      item.textContent = `[${i+1}] ${sourceText}`;
+      list.appendChild(item);
+    });
+
+    bubbleEl.appendChild(toggle);
+    bubbleEl.appendChild(list);
+  }
+
+  // Meta row
+  const metaEl = document.createElement('div');
+  metaEl.className = 'msg-meta';
+  const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  metaEl.textContent = now + (meta && meta.latency_ms ? ` · ${meta.latency_ms}ms` : '');
+
+  bodyEl.appendChild(bubbleEl);
+  bodyEl.appendChild(metaEl);
+  msgEl.appendChild(avatarEl);
+  msgEl.appendChild(bodyEl);
+  container.appendChild(msgEl);
+  container.scrollTop = container.scrollHeight;
+  return msgEl;
+}
+
+function formatText(text) {
+  // Simple markdown-ish formatting
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+function showTyping() {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.className = 'msg bot';
+  el.id = 'typing-indicator';
+  el.innerHTML = `
+    <div class="msg-avatar">🤍</div>
+    <div class="typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+// ── Update sidebar analysis ───────────────────────────────────────
+function updateAnalysis(data) {
+  const panel = document.getElementById('analysis-panel');
+  panel.classList.add('visible');
+
+  // Language
+  const lang = data.language || {};
+  document.getElementById('a-lang').innerHTML =
+    `<span class="tag lang">${lang.language || '—'}</span>`;
+
+  // Intent
+  const intent = data.intent || {};
+  document.getElementById('a-intent').innerHTML =
+    `<span class="tag">${(intent.intent || '—').replace(/_/g,' ')}</span>`;
+
+  // Emotion
+  const emo = data.emotion;
+  document.getElementById('a-emotion').innerHTML = emo
+    ? `<span class="tag emotion">${emo.emotion}</span>`
+    : `<span style="color:var(--text-muted);font-size:11px;">N/A (not MH question)</span>`;
+
+  // Confidence bars
+  const conf = document.getElementById('a-conf');
+  const confData = [];
+  if (lang.confidence) confData.push({label:'Language', v: lang.confidence});
+  if (emo && emo.confidence) confData.push({label:'Emotion', v: emo.confidence});
+
+  if (confData.length) {
+    conf.innerHTML = confData.map(c => `
+      <div style="width:100%;">
+        <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;">
+          <span>${c.label}</span><span style="color:var(--accent)">${Math.round(c.v*100)}%</span>
+        </div>
+        <div class="conf-bar"><div class="conf-fill" style="width:${c.v*100}%"></div></div>
+      </div>`
+    ).join('');
+  } else {
+    conf.textContent = '—';
+  }
+
+  // Route
+  document.getElementById('a-route').innerHTML = data.used_rag
+    ? `<span class="tag route">RAG Pipeline</span>`
+    : `<span class="tag route">Direct Response</span>`;
+
+  // Latency
+  document.getElementById('a-lat').textContent = data.latency_ms
+    ? `${data.latency_ms} ms`
+    : '—';
+}
+
+// ── Send ─────────────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+  input.value = '';
+  autoResize(input);
+
+  appendMessage('user', text);
+  showTyping();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ message: text, show_sources: true }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    removeTyping();
+    appendMessage('bot', data.answer, data);
+    updateAnalysis(data);
+
+  } catch (err) {
+    removeTyping();
+    appendMessage('bot',
+      "I'm having trouble connecting right now. Please check that the server is running and try again.");
+    console.error(err);
+  } finally {
+    isLoading = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function sendChip(el) {
+  document.getElementById('msg-input').value = el.textContent;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function clearChat() {
+  const container = document.getElementById('messages');
+  container.innerHTML = `
+    <div id="welcome">
+      <div class="welcome-icon">💬</div>
+      <h2 class="welcome-title">Hello, I'm here for you.</h2>
+      <p class="welcome-sub">Share what's on your mind — whether you're feeling anxious, overwhelmed, or just need someone to talk to. I'll listen and offer support.</p>
+      <div class="prompt-chips">
+        <div class="prompt-chip" onclick="sendChip(this)">I've been feeling very anxious lately</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I feel hopeless and empty inside</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I can't stop worrying about everything</div>
+        <div class="prompt-chip" onclick="sendChip(this)">How do I cope with depression?</div>
+        <div class="prompt-chip" onclick="sendChip(this)">I'm having trouble sleeping</div>
+      </div>
+    </div>`;
+  document.getElementById('analysis-panel').classList.remove('visible');
+}
+</script>
+</body>
+</html>
